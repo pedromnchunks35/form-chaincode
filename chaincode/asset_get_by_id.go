@@ -18,15 +18,17 @@ func (s *SmartContract) GetAssetById(context contractapi.TransactionContextInter
 }
 
 func (s *SmartContract) validateGetAssetByIdData(context contractapi.TransactionContextInterface, id string) (string, error) {
-	if !utils.IsValidString(id) {
+	cleanId := utils.RemoveStringSpaces(id)
+
+	if !utils.IsValidString(cleanId) {
 		return "", fmt.Errorf("the id is not valid")
 	}
 
-	if !s.exists(context, id) {
+	if !s.exists(context, cleanId) {
 		return "", fmt.Errorf("the asset doesn't exist")
 	}
 
-	return utils.RemoveStringSpaces(id), nil
+	return cleanId, nil
 }
 
 func (s *SmartContract) getDataFromLedgerById(context contractapi.TransactionContextInterface, clearId string) (*dtos.AssetRequest, error) {

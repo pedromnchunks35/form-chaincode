@@ -137,7 +137,7 @@ func querySinglePage(
 	query string,
 	size int32,
 	bookmark string,
-	dtos *[]*dtos.GetAllAssetsRequest,
+	getAllAssetRequestDto *[]*dtos.GetAllAssetsRequest,
 ) (canIContinue bool, newBookmark string, err error) {
 	iterator, responseMetadata, err := context.GetStub().GetQueryResultWithPagination(
 		query,
@@ -160,7 +160,7 @@ func querySinglePage(
 		if err != nil {
 			return false, bookmark, fmt.Errorf("error decoding value from the ledger %s", err)
 		}
-		*dtos = append(*dtos, asset)
+		*getAllAssetRequestDto = append(*getAllAssetRequestDto, asset)
 	}
 
 	return responseMetadata.Bookmark != "", responseMetadata.Bookmark, nil

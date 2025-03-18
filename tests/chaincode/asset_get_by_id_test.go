@@ -3,7 +3,6 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
-	"form-chaincode/chaincode"
 	"form-chaincode/dtos"
 	"form-chaincode/mocks"
 	"form-chaincode/utils"
@@ -13,7 +12,6 @@ import (
 )
 
 var emptyString = " "
-var smartContract = chaincode.SmartContract{}
 var normalId = "some _id"
 var normalTypeForm = "some_type_form"
 var normalDescription = "some_description"

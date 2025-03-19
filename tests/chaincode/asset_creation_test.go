@@ -18,21 +18,13 @@ var normalTimestampCreation = "some _tim estamp"
 var normalInsertionTypeCreation = "s o me_insertion_type"
 var normalHashCreation = "som e _has h"
 
-func Test_givenIncompleteAsset_whenCreateAsset_thenReturnError(t *testing.T) {
+func Test_givenNilAsset_whenCreateAsset_thenReturnError(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockedStub := mocks.NewMockTransactionContextInterface(controller)
 
-	request := &dtos.PostAssetRequest{
-		Id:            normalIdCreation,
-		InsertionType: normalInsertionTypeCreation,
-		Hash:          normalHashCreation,
-	}
-	encodedData, err := json.Marshal(request)
-	assert.Nil(t, err)
-
-	result, err := smartContract.CreateAsset(mockedStub, encodedData)
-	assert.NotNil(t, err.Error(), "decoding the given value results in")
+	result, err := smartContract.CreateAsset(mockedStub, nil)
 	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "decoding the given value results in")
 }
 
 func Test_givenCompleteObjectWithEmtpyStrings_whenCreateAsset_thenReturnError(t *testing.T) {

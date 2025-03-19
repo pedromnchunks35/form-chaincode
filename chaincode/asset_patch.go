@@ -62,8 +62,8 @@ func (s *SmartContract) validatePatchData(context contractapi.TransactionContext
 		return "", nil, fmt.Errorf("the id is not valid")
 	}
 
-	if !s.exists(context, id) {
-		return "", nil, fmt.Errorf("it doesn't exit")
+	if !s.exists(context, clearId) {
+		return "", nil, fmt.Errorf("it doesn't exist")
 	}
 
 	request := &dtos.PutAssetRequest{}

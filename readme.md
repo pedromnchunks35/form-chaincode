@@ -13,3 +13,8 @@ github.com/hyperledger/fabric-contract-api-go/contractapi TransactionContextInte
 mockgen -destination=mocks/mock_chaincode_stub.go 
 -package=mocks github.com/hyperledger/fabric-chaincode-go/shim ChaincodeStubInterface
 ```
+- Generate chaincode stub from hlf using mock gen
+```
+mockgen -destination=mocks/mock_iterator.go -package=mocks 
+github.com/hyperledger/fabric-chaincode-go/shim StateQueryIteratorInterface
+```

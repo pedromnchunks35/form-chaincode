@@ -49,7 +49,7 @@ func createQuery(filter []byte) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		queryToAdd := `"type_form": {"$in":` + string(encodedArr) + `},`
+		queryToAdd := `"type_form":{"$in":` + string(encodedArr) + `},`
 		mainQuery += queryToAdd
 	}
 
@@ -58,7 +58,7 @@ func createQuery(filter []byte) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		queryToAdd := `"insertion_type": {"$in":` + string(encodedArr) + `},`
+		queryToAdd := `"insertion_type":{"$in":` + string(encodedArr) + `},`
 		mainQuery += queryToAdd
 	}
 
@@ -67,7 +67,7 @@ func createQuery(filter []byte) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		queryToAdd := `"id": {"$in":` + string(encodedArr) + `},`
+		queryToAdd := `"id":{"$in":` + string(encodedArr) + `},`
 		mainQuery += queryToAdd
 	}
 
@@ -75,7 +75,7 @@ func createQuery(filter []byte) (string, error) {
 		mainQuery = strings.TrimSuffix(mainQuery, ",")
 	}
 
-	mainQuery += `}`
+	mainQuery += `}}`
 	return mainQuery, nil
 }
 
@@ -118,9 +118,14 @@ func (s *SmartContract) queryAllSetsWithPagination(
 	allAssets := []*dtos.GetAllAssetsRequest{}
 	bookmark := ""
 	for i := 0; i <= page; i++ {
-		canContinue, newBookMark, err := querySinglePage(context, query, int32(size), bookmark, &allAssets)
+		isInCorrectPage := i == page
+		canContinue, newBookMark, err := querySinglePage(context, query, int32(size), bookmark, &allAssets, isInCorrectPage)
 		if err != nil {
 			return nil, err
+		}
+
+		if !isThereANewPage(bookmark, newBookMark) {
+			break
 		}
 		bookmark = newBookMark
 
@@ -132,12 +137,17 @@ func (s *SmartContract) queryAllSetsWithPagination(
 	return allAssets, nil
 }
 
+func isThereANewPage(currentBookmark string, newBookmark string) bool {
+	return currentBookmark != newBookmark
+}
+
 func querySinglePage(
 	context contractapi.TransactionContextInterface,
 	query string,
 	size int32,
 	bookmark string,
 	getAllAssetRequestDto *[]*dtos.GetAllAssetsRequest,
+	correctPage bool,
 ) (canIContinue bool, newBookmark string, err error) {
 	iterator, responseMetadata, err := context.GetStub().GetQueryResultWithPagination(
 		query,
@@ -145,9 +155,13 @@ func querySinglePage(
 		bookmark,
 	)
 	if err != nil {
-		return true, bookmark, fmt.Errorf("error queryign the ledger %s", err)
+		return false, bookmark, fmt.Errorf("error querying the ledger %s", err)
 	}
 	defer iterator.Close()
+
+	if !correctPage {
+		return true, responseMetadata.Bookmark, nil
+	}
 
 	for iterator.HasNext() {
 		queryResponse, err := iterator.Next()

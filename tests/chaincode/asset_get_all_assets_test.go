@@ -16,24 +16,24 @@ import (
 func Test_GivenInvalidPageChar_whenGetAllAssets_thenException(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "l", "10", []byte{1, 0})
-	assert.Nil(t, assets)
+	assets, err := smartContract.GetAllAssets(mockedTransaction, "l", "10", "kkkk")
+	assert.Equal(t, assets, "")
 	assert.NotNil(t, err)
 }
 
 func Test_GivenInvalidSizeChar_whenGetAllAssets_thenException(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "l", []byte{1, 0})
-	assert.Nil(t, assets)
+	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "l", "kkkk")
+	assert.Equal(t, assets, "")
 	assert.NotNil(t, err)
 }
 
 func Test_GivenInvalidPage_whenGetAllAssets_thenException(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "-1", "10", []byte{1, 0})
-	assert.Nil(t, assets)
+	assets, err := smartContract.GetAllAssets(mockedTransaction, "-1", "10", "kkkk")
+	assert.Equal(t, assets, "")
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "page and size are not consistent")
 }
@@ -41,24 +41,24 @@ func Test_GivenInvalidPage_whenGetAllAssets_thenException(t *testing.T) {
 func Test_GivenInvalidSize_whenGetAllAssets_thenException(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "-1", []byte{1, 0})
-	assert.Nil(t, assets)
+	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "-1", "kkk")
+	assert.Equal(t, assets, "")
 	assert.NotNil(t, err)
 }
 
 func Test_GivenInvalidSize2_whenGetAllAssets_thenException(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "0", []byte{1, 0})
-	assert.Nil(t, assets)
+	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "0", "kkk")
+	assert.Equal(t, assets, "")
 	assert.NotNil(t, err)
 }
 
 func Test_GivenNilFilter_whenGetAllAssets_thenException(t *testing.T) {
 	controller := gomock.NewController(t)
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "10", nil)
-	assert.Nil(t, assets)
+	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "10", "")
+	assert.Equal(t, assets, "")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "error decoding filter")
 }
@@ -77,8 +77,8 @@ func Test_GivenEmptyFilterAndErrorIterating_whenGetAllAssets_thenReturnException
 
 	mockedChaincodeStub.EXPECT().GetQueryResultWithPagination(expectedQuery, int32(1), "").Return(nil, nil, fmt.Errorf("lol"))
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "1", encodedFilter)
-	assert.Nil(t, assets)
+	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "1", string(encodedFilter))
+	assert.Equal(t, assets, "")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "error querying the ledger")
 }
@@ -120,10 +120,15 @@ func Test_GivenEmptyFilterAndOneSizePage_whenGetAllAssets_thenReturnOneItem(t *t
 	}
 	mockedIterator.EXPECT().Next().Return(queryResult, nil)
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "1", encodedFilter)
-	assert.Equal(t, len(assets), 1)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "0", "1", string(encodedFilter))
 
-	singleAsset := assets[0]
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
+	assert.Equal(t, len(*assets), 1)
+
+	singleAsset := (*assets)[0]
 	assert.Equal(t, asset.Id, singleAsset.Id)
 	assert.Equal(t, asset.TypeForm, singleAsset.TypeForm)
 	assert.Equal(t, asset.Description, singleAsset.Description)
@@ -169,8 +174,13 @@ func Test_GivenEmptyFilterAndFiveSizePage_whenGetAllAssets_thenReturnFiveItems(t
 	}
 	mockedIterator.EXPECT().Next().Return(queryResult, nil).Times(5)
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "0", "5", encodedFilter)
-	assert.Equal(t, len(assets), 5)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "0", "5", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
+	assert.Equal(t, len(*assets), 5)
 }
 
 func Test_GivenEmptyFilterAndNextpageSizeOne_whenGetAllAssets_thenReturnOneItem(t *testing.T) {
@@ -213,10 +223,15 @@ func Test_GivenEmptyFilterAndNextpageSizeOne_whenGetAllAssets_thenReturnOneItem(
 	mockedIterator.EXPECT().Next().Return(queryResult, nil).Times(1)
 
 	mockedIterator.EXPECT().Close().Return(nil).Times(2)
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", encodedFilter)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, assets)
-	assert.Equal(t, len(assets), 1)
+	assert.Equal(t, len(*assets), 1)
 }
 
 func Test_GivenEmptyFilterAndHasNextFalseSizeOne_whenGetAllAssets_thenReturnException(t *testing.T) {
@@ -239,10 +254,15 @@ func Test_GivenEmptyFilterAndHasNextFalseSizeOne_whenGetAllAssets_thenReturnExce
 	mockedChaincodeStub.EXPECT().GetQueryResultWithPagination(expectedQuery, int32(1), "").Return(mockedIterator, metadata, nil).Times(1)
 	mockedIterator.EXPECT().Close().Return(nil).Times(1)
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", encodedFilter)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, assets)
-	assert.Equal(t, len(assets), 0)
+	assert.Equal(t, len(*assets), 0)
 }
 
 func Test_GivenHashFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing.T) {
@@ -250,13 +270,17 @@ func Test_GivenHashFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing.T) {
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
 	mockedChaincodeStub := mocks.NewMockChaincodeStubInterface(controller)
 	mockedIterator := mocks.NewMockStateQueryIteratorInterface(controller)
+
+	hashs := make([]string, 0)
+	hashs = append(hashs, normalHash)
+
 	filter := &dtos.Filter{
-		Hash: normalHash,
+		Hashs: hashs,
 	}
 	encodedFilter, err := json.Marshal(filter)
 	assert.Nil(t, err)
 
-	expectedQuery := `{"selector":{"hash":"` + normalHash + `"}}`
+	expectedQuery := `{"selector":{"hash":{"$in":["` + utils.RemoveStringSpaces(normalHash) + `"]}}}`
 
 	mockedTransaction.EXPECT().GetStub().Return(mockedChaincodeStub).Times(1)
 
@@ -267,10 +291,15 @@ func Test_GivenHashFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing.T) {
 	mockedChaincodeStub.EXPECT().GetQueryResultWithPagination(expectedQuery, int32(1), "").Return(mockedIterator, metadata, nil).Times(1)
 	mockedIterator.EXPECT().Close().Return(nil).Times(1)
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", encodedFilter)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, assets)
-	assert.Equal(t, len(assets), 0)
+	assert.Equal(t, len(*assets), 0)
 }
 
 func Test_GivenHashAndIdsFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing.T) {
@@ -279,17 +308,20 @@ func Test_GivenHashAndIdsFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing
 	mockedChaincodeStub := mocks.NewMockChaincodeStubInterface(controller)
 	mockedIterator := mocks.NewMockStateQueryIteratorInterface(controller)
 
+	hashs := make([]string, 0)
+	hashs = append(hashs, normalHash)
+
 	ids := make([]string, 0)
 	ids = append(ids, normalId)
 
 	filter := &dtos.Filter{
-		Hash: normalHash,
-		Ids:  ids,
+		Hashs: hashs,
+		Ids:   ids,
 	}
 	encodedFilter, err := json.Marshal(filter)
 	assert.Nil(t, err)
 
-	expectedQuery := `{"selector":{"hash":"` + normalHash + `"` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]` + `}}}`
+	expectedQuery := `{"selector":{"hash":{"$in":["` + utils.RemoveStringSpaces(normalHash) + `"]}` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]` + `}}}`
 
 	mockedTransaction.EXPECT().GetStub().Return(mockedChaincodeStub).Times(1)
 
@@ -300,10 +332,15 @@ func Test_GivenHashAndIdsFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing
 	mockedChaincodeStub.EXPECT().GetQueryResultWithPagination(expectedQuery, int32(1), "").Return(mockedIterator, metadata, nil).Times(1)
 	mockedIterator.EXPECT().Close().Return(nil).Times(1)
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", encodedFilter)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, assets)
-	assert.Equal(t, len(assets), 0)
+	assert.Equal(t, len(*assets), 0)
 }
 
 func Test_GivenHashAndIdsAndTypeFormsFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing.T) {
@@ -312,6 +349,9 @@ func Test_GivenHashAndIdsAndTypeFormsFilterAndNoItems_whenGetAllAssets_thenArgsO
 	mockedChaincodeStub := mocks.NewMockChaincodeStubInterface(controller)
 	mockedIterator := mocks.NewMockStateQueryIteratorInterface(controller)
 
+	hashs := make([]string, 0)
+	hashs = append(hashs, normalHash)
+
 	ids := make([]string, 0)
 	ids = append(ids, normalId)
 
@@ -319,14 +359,14 @@ func Test_GivenHashAndIdsAndTypeFormsFilterAndNoItems_whenGetAllAssets_thenArgsO
 	typeForms = append(typeForms, normalTypeForm)
 
 	filter := &dtos.Filter{
-		Hash:      normalHash,
+		Hashs:     hashs,
 		Ids:       ids,
 		TypeForms: typeForms,
 	}
 	encodedFilter, err := json.Marshal(filter)
 	assert.Nil(t, err)
 
-	expectedQuery := `{"selector":{"hash":"` + normalHash + `"` + `,"type_form":{"$in":["` + utils.RemoveStringSpaces(normalTypeForm) + `"]}` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]` + `}}}`
+	expectedQuery := `{"selector":{"hash":{"$in":["` + utils.RemoveStringSpaces(normalHash) + `"]}` + `,"type_form":{"$in":["` + utils.RemoveStringSpaces(normalTypeForm) + `"]}` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]` + `}}}`
 
 	mockedTransaction.EXPECT().GetStub().Return(mockedChaincodeStub).Times(1)
 
@@ -337,10 +377,15 @@ func Test_GivenHashAndIdsAndTypeFormsFilterAndNoItems_whenGetAllAssets_thenArgsO
 	mockedChaincodeStub.EXPECT().GetQueryResultWithPagination(expectedQuery, int32(1), "").Return(mockedIterator, metadata, nil).Times(1)
 	mockedIterator.EXPECT().Close().Return(nil).Times(1)
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", encodedFilter)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, assets)
-	assert.Equal(t, len(assets), 0)
+	assert.Equal(t, len(*assets), 0)
 }
 
 func Test_GivenHashAndIdsAndTypeFormsAndInsertionTypesFilterAndNoItems_whenGetAllAssets_thenArgsOk(t *testing.T) {
@@ -348,6 +393,9 @@ func Test_GivenHashAndIdsAndTypeFormsAndInsertionTypesFilterAndNoItems_whenGetAl
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
 	mockedChaincodeStub := mocks.NewMockChaincodeStubInterface(controller)
 	mockedIterator := mocks.NewMockStateQueryIteratorInterface(controller)
+
+	hashs := make([]string, 0)
+	hashs = append(hashs, normalHash)
 
 	ids := make([]string, 0)
 	ids = append(ids, normalId)
@@ -359,7 +407,7 @@ func Test_GivenHashAndIdsAndTypeFormsAndInsertionTypesFilterAndNoItems_whenGetAl
 	insertionTypes = append(insertionTypes, normalInsertionType)
 
 	filter := &dtos.Filter{
-		Hash:           normalHash,
+		Hashs:          hashs,
 		Ids:            ids,
 		TypeForms:      typeForms,
 		InsertionTypes: insertionTypes,
@@ -367,7 +415,7 @@ func Test_GivenHashAndIdsAndTypeFormsAndInsertionTypesFilterAndNoItems_whenGetAl
 	encodedFilter, err := json.Marshal(filter)
 	assert.Nil(t, err)
 
-	expectedQuery := `{"selector":{"hash":"` + normalHash + `"` + `,"type_form":{"$in":["` + utils.RemoveStringSpaces(normalTypeForm) + `"]}` + `,"insertion_type":{"$in":["` + utils.RemoveStringSpaces(normalInsertionType) + `"]}` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]` + `}}}`
+	expectedQuery := `{"selector":{"hash":{"$in":["` + utils.RemoveStringSpaces(normalHash) + `"]}` + `,"type_form":{"$in":["` + utils.RemoveStringSpaces(normalTypeForm) + `"]}` + `,"insertion_type":{"$in":["` + utils.RemoveStringSpaces(normalInsertionType) + `"]}` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]` + `}}}`
 
 	mockedTransaction.EXPECT().GetStub().Return(mockedChaincodeStub).Times(1)
 
@@ -378,8 +426,13 @@ func Test_GivenHashAndIdsAndTypeFormsAndInsertionTypesFilterAndNoItems_whenGetAl
 	mockedChaincodeStub.EXPECT().GetQueryResultWithPagination(expectedQuery, int32(1), "").Return(mockedIterator, metadata, nil).Times(1)
 	mockedIterator.EXPECT().Close().Return(nil).Times(1)
 
-	assets, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", encodedFilter)
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, assets)
-	assert.Equal(t, len(assets), 0)
+	assert.Equal(t, len(*assets), 0)
 }

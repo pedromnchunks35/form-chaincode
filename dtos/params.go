@@ -36,8 +36,8 @@ type PutAssetRequest struct {
 }
 
 type Filter struct {
-	Ids            []string `json:"id"`
+	Ids            []string `json:"ids"`
 	TypeForms      []string `json:"type_forms"`
 	InsertionTypes []string `json:"insertion_types"`
-	Hash           string   `json:"hash"`
+	Hashs          []string `json:"hashs"`
 }

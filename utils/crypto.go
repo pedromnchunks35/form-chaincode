@@ -8,10 +8,10 @@ import (
 )
 
 func GetTLSProperties() shim.TLSProperties {
-	tlsDisabledStr := getEnvOrDefault("CHAINCODE_TLS_DISABLED", "true")
-	key := getEnvOrDefault("CHAINCODE_TLS_KEY", "")
-	cert := getEnvOrDefault("CHAINCODE_TLS_CERT", "")
-	clientCACert := getEnvOrDefault("CHAINCODE_CLIENT_CA_CERT", "")
+	tlsDisabledStr := GetEnvOrDefault("CHAINCODE_TLS_DISABLED", "true")
+	key := GetEnvOrDefault("CHAINCODE_TLS_KEY", "")
+	cert := GetEnvOrDefault("CHAINCODE_TLS_CERT", "")
+	clientCACert := GetEnvOrDefault("CHAINCODE_CLIENT_CA_CERT", "")
 
 	tlsDisabled := getBoolOrDefault(tlsDisabledStr, false)
 	var keyBytes, certBytes, clientCACertBytes []byte
@@ -43,9 +43,9 @@ func GetTLSProperties() shim.TLSProperties {
 	}
 }
 
-func getEnvOrDefault(env, defaultVal string) string {
+func GetEnvOrDefault(env, defaultVal string) string {
 	value, ok := os.LookupEnv(env)
-	if !ok {
+	if !ok || value == "" {
 		value = defaultVal
 	}
 	return value

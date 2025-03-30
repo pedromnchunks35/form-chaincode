@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
+	"form-chaincode/chaincode"
 	"form-chaincode/utils"
-	chaincode "github.com/hyperledger/fabric-chaincode-go"
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 	"log"
-	"os"
 )
 
 type serverConfig struct {
@@ -17,8 +16,8 @@ type serverConfig struct {
 
 func main() {
 	config := serverConfig{
-		CCID:    os.Getenv("CHAINCODE_ID"),
-		Address: os.Getenv("CHAINCODE_SERVER_ADDRESS"),
+		CCID:    utils.GetEnvOrDefault("CHAINCODE_ID", "123456"),
+		Address: utils.GetEnvOrDefault("CHAINCODE_SERVER_ADDRESS", "localhost:8080"),
 	}
 	assetChaincode, err := contractapi.NewChaincode(&chaincode.SmartContract{})
 	if err != nil {

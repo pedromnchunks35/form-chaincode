@@ -13,24 +13,36 @@ func (s *SmartContract) GetAllAssets(
 	context contractapi.TransactionContextInterface,
 	pageSize string,
 	sizeSize string,
-	filter []byte,
-) ([]*dtos.GetAllAssetsRequest, error) {
+	filter string,
+) (string, error) {
 	page, size, err := validateDataGetAllAssets(pageSize, sizeSize)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	query, err := createQuery(filter)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return s.queryAllSetsWithPagination(context, query, page, size)
+	assets, err := s.queryAllSetsWithPagination(context, query, page, size)
+	if err != nil {
+		return "", err
+	}
+
+	encodedAssets, err := json.Marshal(assets)
+	if err != nil {
+		return "", fmt.Errorf("error encoding the final result %s", err)
+	}
+
+	return string(encodedAssets), nil
 }
 
-func createQuery(filter []byte) (string, error) {
+func createQuery(filter string) (string, error) {
+	filterByte := []byte(filter)
+
 	filterDecoded := &dtos.Filter{}
-	err := json.Unmarshal(filter, filterDecoded)
+	err := json.Unmarshal(filterByte, filterDecoded)
 	if err != nil {
 		return "", fmt.Errorf("error decoding filter %s", err)
 	}
@@ -39,8 +51,12 @@ func createQuery(filter []byte) (string, error) {
 	initQueryLen := len(mainQuery)
 	cleanFilter(filterDecoded)
 
-	if filterDecoded.Hash != "" {
-		queryToAdd := `"hash":"` + filterDecoded.Hash + `",`
+	if filterDecoded.Hashs != nil {
+		encodedArr, err := encodeArray(filterDecoded.Hashs)
+		if err != nil {
+			return "", err
+		}
+		queryToAdd := `"hash":{"$in":` + string(encodedArr) + `},`
 		mainQuery += queryToAdd
 	}
 
@@ -89,7 +105,10 @@ func encodeArray(arr []string) ([]byte, error) {
 }
 
 func cleanFilter(filterDecoded *dtos.Filter) {
-	filterDecoded.Hash = utils.RemoveStringSpaces(filterDecoded.Hash)
+	if filterDecoded.Hashs != nil {
+		clearAllStringFields(&filterDecoded.Hashs)
+	}
+
 	if filterDecoded.Ids != nil {
 		clearAllStringFields(&filterDecoded.Ids)
 	}

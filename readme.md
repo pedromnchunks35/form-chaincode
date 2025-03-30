@@ -18,3 +18,6 @@ mockgen -destination=mocks/mock_chaincode_stub.go
 mockgen -destination=mocks/mock_iterator.go -package=mocks 
 github.com/hyperledger/fabric-chaincode-go/shim StateQueryIteratorInterface
 ```
+
+# Generate image
+- We create a docker file

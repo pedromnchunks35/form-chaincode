@@ -8,7 +8,7 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-func (s *SmartContract) CreateAsset(context contractapi.TransactionContextInterface, encodedValue []byte) (*dtos.PostAssetRequest, error) {
+func (s *SmartContract) CreateAsset(context contractapi.TransactionContextInterface, encodedValue string) (*dtos.PostAssetRequest, error) {
 	newDto, err := s.validateAsset(context, encodedValue)
 	if err != nil {
 		return nil, err
@@ -31,8 +31,8 @@ func (s *SmartContract) postAsset(context contractapi.TransactionContextInterfac
 	return cleanDto, nil
 }
 
-func (s *SmartContract) validateAsset(context contractapi.TransactionContextInterface, encodedValue []byte) (*dtos.PostAssetRequest, error) {
-	newDto, err := utils.DecodeValueToPostRequest(encodedValue)
+func (s *SmartContract) validateAsset(context contractapi.TransactionContextInterface, value string) (*dtos.PostAssetRequest, error) {
+	newDto, err := utils.DecodeValueToPostRequest(value)
 	if err != nil {
 		return nil, fmt.Errorf("decoding the given value results in: %s", err)
 	}
@@ -50,7 +50,6 @@ func (s *SmartContract) validateAsset(context contractapi.TransactionContextInte
 func removeSpacesAndArePostRequestFieldsValid(request *dtos.PostAssetRequest) bool {
 	request.Id = utils.RemoveStringSpaces(request.Id)
 	request.TypeForm = utils.RemoveStringSpaces(request.TypeForm)
-	request.Description = utils.RemoveStringSpaces(request.Description)
 	request.Timestamp = utils.RemoveStringSpaces(request.Timestamp)
 	request.InsertionType = utils.RemoveStringSpaces(request.InsertionType)
 	request.Hash = utils.RemoveStringSpaces(request.Hash)

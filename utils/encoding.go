@@ -5,9 +5,10 @@ import (
 	"form-chaincode/dtos"
 )
 
-func DecodeValueToPostRequest(value []byte) (*dtos.PostAssetRequest, error) {
+func DecodeValueToPostRequest(value string) (*dtos.PostAssetRequest, error) {
+	valueInBytes := []byte(value)
 	newDto := &dtos.PostAssetRequest{}
-	err := json.Unmarshal(value, newDto)
+	err := json.Unmarshal(valueInBytes, newDto)
 	if err != nil {
 		return nil, err
 	}

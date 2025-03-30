@@ -8,7 +8,7 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-func (s *SmartContract) PatchAsset(context contractapi.TransactionContextInterface, encodedData []byte, id string) (*dtos.AssetRequest, error) {
+func (s *SmartContract) PatchAsset(context contractapi.TransactionContextInterface, encodedData string, id string) (*dtos.AssetRequest, error) {
 	clearId, clearRequest, err := s.validatePatchData(context, encodedData, id)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,8 @@ func (s *SmartContract) patchAsset(context contractapi.TransactionContextInterfa
 	return asset, nil
 }
 
-func (s *SmartContract) validatePatchData(context contractapi.TransactionContextInterface, encodedData []byte, id string) (string, *dtos.PutAssetRequest, error) {
+func (s *SmartContract) validatePatchData(context contractapi.TransactionContextInterface, encodedData string, id string) (string, *dtos.PutAssetRequest, error) {
+
 	clearId := utils.RemoveStringSpaces(id)
 	if !utils.IsValidString(clearId) {
 		return "", nil, fmt.Errorf("the id is not valid")
@@ -66,8 +67,10 @@ func (s *SmartContract) validatePatchData(context contractapi.TransactionContext
 		return "", nil, fmt.Errorf("it doesn't exist")
 	}
 
+	encodedDataBytes := []byte(encodedData)
+
 	request := &dtos.PutAssetRequest{}
-	err := json.Unmarshal(encodedData, request)
+	err := json.Unmarshal(encodedDataBytes, request)
 	if err != nil {
 		return "", nil, fmt.Errorf("decoding the object %s", err)
 	}

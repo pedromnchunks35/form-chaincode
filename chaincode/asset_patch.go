@@ -8,13 +8,19 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-func (s *SmartContract) PatchAsset(context contractapi.TransactionContextInterface, encodedData string, id string) (*dtos.AssetRequest, error) {
+func (s *SmartContract) PatchAsset(context contractapi.TransactionContextInterface, encodedData string, id string) (string, error) {
 	clearId, clearRequest, err := s.validatePatchData(context, encodedData, id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return s.patchAsset(context, clearRequest, clearId)
+	asset, err := s.patchAsset(context, clearRequest, clearId)
+	if err != nil {
+		return "", err
+	}
+
+	assetEncoded, err := json.Marshal(asset)
+	return string(assetEncoded), nil
 }
 
 func (s *SmartContract) patchAsset(context contractapi.TransactionContextInterface, request *dtos.PutAssetRequest, clearId string) (*dtos.AssetRequest, error) {
@@ -23,27 +29,30 @@ func (s *SmartContract) patchAsset(context contractapi.TransactionContextInterfa
 		return nil, err
 	}
 
+	assetDecoded := &dtos.AssetRequest{}
+	err = json.Unmarshal([]byte(asset), assetDecoded)
+
 	if utils.IsValidString(request.Hash) {
-		asset.Hash = request.Hash
+		assetDecoded.Hash = request.Hash
 	}
 
 	if utils.IsValidString(request.TypeForm) {
-		asset.TypeForm = request.TypeForm
+		assetDecoded.TypeForm = request.TypeForm
 	}
 
-	if utils.IsValidString(request.Timestamp) {
-		asset.Timestamp = request.Timestamp
+	if !request.Timestamp.IsZero() {
+		assetDecoded.Timestamp = request.Timestamp
 	}
 
 	if utils.IsValidString(request.InsertionType) {
-		asset.InsertionType = request.InsertionType
+		assetDecoded.InsertionType = request.InsertionType
 	}
 
 	if utils.IsValidString(request.Description) {
-		asset.Description = request.Description
+		assetDecoded.Description = request.Description
 	}
 
-	encodedData, err := json.Marshal(asset)
+	encodedData, err := json.Marshal(assetDecoded)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding asset after changing values %s", err)
 	}
@@ -53,7 +62,7 @@ func (s *SmartContract) patchAsset(context contractapi.TransactionContextInterfa
 		return nil, fmt.Errorf("error updating ledger %s", err)
 	}
 
-	return asset, nil
+	return assetDecoded, nil
 }
 
 func (s *SmartContract) validatePatchData(context contractapi.TransactionContextInterface, encodedData string, id string) (string, *dtos.PutAssetRequest, error) {
@@ -83,14 +92,12 @@ func (s *SmartContract) validatePatchData(context contractapi.TransactionContext
 }
 
 func removeSpacesAndCheckIfOnePropertyToChange(request *dtos.PutAssetRequest) bool {
-	request.Timestamp = utils.RemoveStringSpaces(request.Timestamp)
 	request.TypeForm = utils.RemoveStringSpaces(request.TypeForm)
 	request.Hash = utils.RemoveStringSpaces(request.Hash)
 	request.InsertionType = utils.RemoveStringSpaces(request.InsertionType)
 	request.Description = utils.RemoveStringSpaces(request.Description)
 
-	return !utils.IsValidString(request.Timestamp) &&
-		!utils.IsValidString(request.TypeForm) &&
+	return !utils.IsValidString(request.TypeForm) &&
 		!utils.IsValidString(request.Hash) &&
 		!utils.IsValidString(request.InsertionType) &&
 		!utils.IsValidString(request.Description)

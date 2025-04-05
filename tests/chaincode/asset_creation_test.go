@@ -9,12 +9,13 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 var normalIdCreation = "some _id"
 var normalTypeFormCreation = "some_ type_form"
 var normalDescriptionCreation = "some_ description"
-var normalTimestampCreation = "some _tim estamp"
+var normalTimestampCreation = time.Now()
 var normalInsertionTypeCreation = "s o me_insertion_type"
 var normalHashCreation = "som e _has h"
 
@@ -23,7 +24,7 @@ func Test_givenNilAsset_whenCreateAsset_thenReturnError(t *testing.T) {
 	mockedStub := mocks.NewMockTransactionContextInterface(controller)
 
 	result, err := smartContract.CreateAsset(mockedStub, "")
-	assert.Nil(t, result)
+	assert.Equal(t, "", result)
 	assert.Contains(t, err.Error(), "decoding the given value results in")
 }
 
@@ -44,7 +45,7 @@ func Test_givenCompleteObjectWithEmtpyStrings_whenCreateAsset_thenReturnError(t 
 
 	result, err := smartContract.CreateAsset(mockedStub, string(encodedData))
 	assert.NotNil(t, err.Error(), "some fields are not valid")
-	assert.Nil(t, result)
+	assert.Equal(t, "", result)
 }
 
 func Test_givenAlreadyExistentObject_whenCreateAsset_thenReturnError(t *testing.T) {
@@ -68,7 +69,7 @@ func Test_givenAlreadyExistentObject_whenCreateAsset_thenReturnError(t *testing.
 
 	result, err := smartContract.CreateAsset(mockedTransaction, string(encodedData))
 	assert.NotNil(t, err.Error(), "already exists")
-	assert.Nil(t, result)
+	assert.Equal(t, "", result)
 }
 
 func Test_givenCompleteValidObject_whenCreateAsset_thenReturnSameObject(t *testing.T) {
@@ -94,7 +95,7 @@ func Test_givenCompleteValidObject_whenCreateAsset_thenReturnSameObject(t *testi
 		Id:            utils.RemoveStringSpaces(normalIdCreation),
 		TypeForm:      utils.RemoveStringSpaces(normalTypeFormCreation),
 		Description:   normalDescriptionCreation,
-		Timestamp:     utils.RemoveStringSpaces(normalTimestampCreation),
+		Timestamp:     normalTimestampCreation,
 		InsertionType: utils.RemoveStringSpaces(normalInsertionTypeCreation),
 		Hash:          utils.RemoveStringSpaces(normalHashCreation),
 	}
@@ -102,13 +103,17 @@ func Test_givenCompleteValidObject_whenCreateAsset_thenReturnSameObject(t *testi
 	assert.Nil(t, err)
 
 	mockedChaincodeStub.EXPECT().PutState(utils.RemoveStringSpaces(normalIdCreation), cleanEncodedData).Return(nil)
-	result, err := smartContract.CreateAsset(mockedTransaction, string(encodedData))
+	resultString, err := smartContract.CreateAsset(mockedTransaction, string(encodedData))
+	assert.Nil(t, err)
+
+	result := &dtos.PostAssetRequest{}
+	err = json.Unmarshal([]byte(resultString), result)
 	assert.Nil(t, err)
 
 	assert.Equal(t, result.Id, cleanRequest.Id)
 	assert.Equal(t, result.TypeForm, cleanRequest.TypeForm)
 	assert.Equal(t, result.Description, cleanRequest.Description)
-	assert.Equal(t, result.Timestamp, cleanRequest.Timestamp)
+	assert.Equal(t, result.Timestamp.Equal(cleanRequest.Timestamp), true)
 	assert.Equal(t, result.InsertionType, cleanRequest.InsertionType)
 	assert.Equal(t, result.Hash, cleanRequest.Hash)
 }
@@ -136,7 +141,7 @@ func Test_givenExceptionOnPut_whenCreateAsset_thenReturnException(t *testing.T) 
 		Id:            utils.RemoveStringSpaces(normalIdCreation),
 		TypeForm:      utils.RemoveStringSpaces(normalTypeFormCreation),
 		Description:   normalDescriptionCreation,
-		Timestamp:     utils.RemoveStringSpaces(normalTimestampCreation),
+		Timestamp:     normalTimestampCreation,
 		InsertionType: utils.RemoveStringSpaces(normalInsertionTypeCreation),
 		Hash:          utils.RemoveStringSpaces(normalHashCreation),
 	}
@@ -147,7 +152,7 @@ func Test_givenExceptionOnPut_whenCreateAsset_thenReturnException(t *testing.T) 
 		fmt.Errorf("some exception"),
 	)
 	result, err := smartContract.CreateAsset(mockedTransaction, string(encodedData))
-	assert.Nil(t, result)
+	assert.Equal(t, "", result)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "inserting cleaned object")
 }

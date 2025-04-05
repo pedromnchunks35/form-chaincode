@@ -26,3 +26,8 @@ github.com/hyperledger/fabric-chaincode-go/shim HistoryQueryIteratorInterface
 
 # Generate image
 - We create a docker file
+- We use docker buildx
+
+# Timestamp format
+- Timestamp format will be the one from  `ISO 8601` which is the same as RFC3339
+- E.g: "2025-04-05T12:30:45Z"

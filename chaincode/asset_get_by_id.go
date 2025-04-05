@@ -8,13 +8,23 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-func (s *SmartContract) GetAssetById(context contractapi.TransactionContextInterface, id string) (*dtos.AssetRequest, error) {
+func (s *SmartContract) GetAssetById(context contractapi.TransactionContextInterface, id string) (string, error) {
 	clearId, err := s.validateGetAssetByIdData(context, id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return s.getDataFromLedgerById(context, clearId)
+	asset, err := s.getDataFromLedgerById(context, clearId)
+	if err != nil {
+		return "", err
+	}
+
+	assetEncoded, err := json.Marshal(asset)
+	if err != nil {
+		return "", fmt.Errorf("error encoding the object %s", err.Error())
+	}
+
+	return string(assetEncoded), nil
 }
 
 func (s *SmartContract) validateGetAssetByIdData(context contractapi.TransactionContextInterface, id string) (string, error) {

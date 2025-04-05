@@ -15,7 +15,7 @@ func Test_givenInvalidId_whenPatchAsset_thenException(t *testing.T) {
 	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
 
 	asset, err := smartContract.PatchAsset(mockedTransaction, "", emptyString)
-	assert.Nil(t, asset)
+	assert.Equal(t, "", asset)
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "the id is not valid")
 }
@@ -28,7 +28,7 @@ func Test_givenValidIdButAssetDoesNotExist_whenPatchAsset_thenException(t *testi
 	mockedTransaction.EXPECT().GetStub().Return(mockedChaincode)
 	mockedChaincode.EXPECT().GetState(utils.RemoveStringSpaces(normalId)).Return(nil, nil)
 	asset, err := smartContract.PatchAsset(mockedTransaction, "", normalId)
-	assert.Nil(t, asset)
+	assert.Equal(t, "", asset)
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "it doesn't exist")
 }
@@ -42,7 +42,7 @@ func Test_givenNilStructure_whenPatchAsset_thenException(t *testing.T) {
 	mockedChaincode.EXPECT().GetState(utils.RemoveStringSpaces(normalId)).Return([]byte{1, 0}, nil)
 
 	asset, err := smartContract.PatchAsset(mockedTransaction, "", normalId)
-	assert.Nil(t, asset)
+	assert.Equal(t, "", asset)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "decoding the object")
 }
@@ -60,7 +60,7 @@ func Test_givenNothingToPut_whenPatchAsset_thenException(t *testing.T) {
 	assert.Nil(t, err)
 
 	asset, err := smartContract.PatchAsset(mockedTransaction, string(encoded), normalId)
-	assert.Nil(t, asset)
+	assert.Equal(t, "", asset)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nothing to change in the request")
 }
@@ -88,8 +88,13 @@ func Test_givenSomethingToPut_whenPatchAsset_thenReturnAsset(t *testing.T) {
 
 	mockedChaincode.EXPECT().PutState(utils.RemoveStringSpaces(normalId), gomock.Any()).Times(1)
 
-	asset, err := smartContract.PatchAsset(mockedTransaction, string(encoded), normalId)
+	resultString, err := smartContract.PatchAsset(mockedTransaction, string(encoded), normalId)
 	assert.Nil(t, err)
+
+	asset := &dtos.AssetRequest{}
+	err = json.Unmarshal([]byte(resultString), asset)
+	assert.Nil(t, err)
+
 	assert.NotNil(t, asset)
 	assert.Equal(t, asset.Hash, assetToPut.Hash)
 	assert.Equal(t, asset.TypeForm, givenAsset.TypeForm)

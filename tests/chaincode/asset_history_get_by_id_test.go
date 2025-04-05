@@ -44,7 +44,7 @@ func Test_given_validIdAndOneItemHistory_thenReturnArrayLength1(t *testing.T) {
 		Id:            utils.RemoveStringSpaces(normalId),
 		TypeForm:      utils.RemoveStringSpaces(normalTypeForm),
 		Description:   utils.RemoveStringSpaces(normalDescription),
-		Timestamp:     utils.RemoveStringSpaces(normalTimestamp),
+		Timestamp:     normalTimestamp,
 		InsertionType: utils.RemoveStringSpaces(normalInsertionType),
 		Hash:          utils.RemoveStringSpaces(normalHash),
 	}
@@ -93,7 +93,7 @@ func Test_given_validIdAndTwoItemHistory_thenReturnArrayLength2(t *testing.T) {
 		Id:            utils.RemoveStringSpaces(normalId),
 		TypeForm:      utils.RemoveStringSpaces(normalTypeForm),
 		Description:   utils.RemoveStringSpaces(normalDescription),
-		Timestamp:     utils.RemoveStringSpaces(normalTimestamp),
+		Timestamp:     normalTimestamp,
 		InsertionType: utils.RemoveStringSpaces(normalInsertionType),
 		Hash:          utils.RemoveStringSpaces(normalHash),
 	}

@@ -6,15 +6,26 @@ import (
 	"form-chaincode/dtos"
 	"form-chaincode/utils"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+	"time"
 )
 
-func (s *SmartContract) CreateAsset(context contractapi.TransactionContextInterface, encodedValue string) (*dtos.PostAssetRequest, error) {
+func (s *SmartContract) CreateAsset(context contractapi.TransactionContextInterface, encodedValue string) (string, error) {
 	newDto, err := s.validateAsset(context, encodedValue)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return s.postAsset(context, newDto)
+	asset, err := s.postAsset(context, newDto)
+	if err != nil {
+		return "", err
+	}
+
+	assetEncoded, err := json.Marshal(asset)
+	if err != nil {
+		return "", fmt.Errorf("error encoding the asset %s", err.Error())
+	}
+
+	return string(assetEncoded), nil
 }
 
 func (s *SmartContract) postAsset(context contractapi.TransactionContextInterface, cleanDto *dtos.PostAssetRequest) (*dtos.PostAssetRequest, error) {
@@ -50,7 +61,6 @@ func (s *SmartContract) validateAsset(context contractapi.TransactionContextInte
 func removeSpacesAndArePostRequestFieldsValid(request *dtos.PostAssetRequest) bool {
 	request.Id = utils.RemoveStringSpaces(request.Id)
 	request.TypeForm = utils.RemoveStringSpaces(request.TypeForm)
-	request.Timestamp = utils.RemoveStringSpaces(request.Timestamp)
 	request.InsertionType = utils.RemoveStringSpaces(request.InsertionType)
 	request.Hash = utils.RemoveStringSpaces(request.Hash)
 
@@ -68,14 +78,14 @@ func areAllPostFieldsValid(
 	id string,
 	typeForm string,
 	description string,
-	timestamp string,
+	timestamp time.Time,
 	insertionsType string,
 	hash string,
 ) bool {
 	return utils.IsValidString(id) &&
 		utils.IsValidString(typeForm) &&
 		utils.IsValidString(description) &&
-		utils.IsValidString(timestamp) &&
+		!timestamp.IsZero() &&
 		utils.IsValidString(insertionsType) &&
 		utils.IsValidString(hash)
 }

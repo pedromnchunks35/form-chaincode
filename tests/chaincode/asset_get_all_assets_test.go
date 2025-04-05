@@ -11,6 +11,7 @@ import (
 	"github.com/hyperledger/fabric-protos-go/peer"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func Test_GivenInvalidPageChar_whenGetAllAssets_thenException(t *testing.T) {
@@ -132,7 +133,7 @@ func Test_GivenEmptyFilterAndOneSizePage_whenGetAllAssets_thenReturnOneItem(t *t
 	assert.Equal(t, asset.Id, singleAsset.Id)
 	assert.Equal(t, asset.TypeForm, singleAsset.TypeForm)
 	assert.Equal(t, asset.Description, singleAsset.Description)
-	assert.Equal(t, asset.Timestamp, singleAsset.Timestamp)
+	assert.Equal(t, asset.Timestamp.Equal(singleAsset.Timestamp), true)
 	assert.Equal(t, asset.InsertionType, singleAsset.InsertionType)
 	assert.Equal(t, asset.Hash, singleAsset.Hash)
 }
@@ -416,6 +417,132 @@ func Test_GivenHashAndIdsAndTypeFormsAndInsertionTypesFilterAndNoItems_whenGetAl
 	assert.Nil(t, err)
 
 	expectedQuery := `{"selector":{"hash":{"$in":["` + utils.RemoveStringSpaces(normalHash) + `"]}` + `,"type_form":{"$in":["` + utils.RemoveStringSpaces(normalTypeForm) + `"]}` + `,"insertion_type":{"$in":["` + utils.RemoveStringSpaces(normalInsertionType) + `"]}` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]` + `}}}`
+
+	mockedTransaction.EXPECT().GetStub().Return(mockedChaincodeStub).Times(1)
+
+	metadata := &peer.QueryResponseMetadata{
+		FetchedRecordsCount: 1,
+		Bookmark:            "",
+	}
+	mockedChaincodeStub.EXPECT().GetQueryResultWithPagination(expectedQuery, int32(1), "").Return(mockedIterator, metadata, nil).Times(1)
+	mockedIterator.EXPECT().Close().Return(nil).Times(1)
+
+	assetsString, err := smartContract.GetAllAssets(mockedTransaction, "1", "1", string(encodedFilter))
+
+	assets := &[]dtos.GetAllAssetsRequest{}
+	err = json.Unmarshal([]byte(assetsString), assets)
+	assert.Nil(t, err)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, assets)
+	assert.Equal(t, len(*assets), 0)
+}
+
+func Test_GivenMaxInvalidAndMaxValidTimestamp_whenGetAllAssets_thenReturnException(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
+	filter := &dtos.Filter{
+		TimeFilter: dtos.TimestampFilter{
+			Min: normalTimestamp,
+		},
+	}
+	encodedFilter, err := json.Marshal(filter)
+	assert.Nil(t, err)
+
+	result, err := smartContract.GetAllAssets(mockedTransaction, "0", "10", string(encodedFilter))
+	assert.Equal(t, "", result)
+	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), "maximum interval is invalid,while minimum is valid")
+}
+
+func Test_GivenMinInvalidAndMaxValidTimestamp_whenGetAllAssets_thenReturnException(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
+	filter := &dtos.Filter{
+		TimeFilter: dtos.TimestampFilter{
+			Max: normalTimestamp,
+		},
+	}
+	encodedFilter, err := json.Marshal(filter)
+	assert.Nil(t, err)
+
+	result, err := smartContract.GetAllAssets(mockedTransaction, "0", "10", string(encodedFilter))
+	assert.Equal(t, "", result)
+	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), "mininum interval is invalid, while maximum is valid")
+}
+
+func Test_GivenMinAndMaxEqual_whenGetAllAssets_thenReturnException(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
+	filter := &dtos.Filter{
+		TimeFilter: dtos.TimestampFilter{
+			Max: normalTimestamp,
+			Min: normalTimestamp,
+		},
+	}
+	encodedFilter, err := json.Marshal(filter)
+	assert.Nil(t, err)
+
+	result, err := smartContract.GetAllAssets(mockedTransaction, "0", "10", string(encodedFilter))
+	assert.Equal(t, "", result)
+	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), "intervals should not be equal")
+}
+
+func Test_GivenMinNotInferiorToMax_whenGetAllAssets_thenReturnException(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
+	filter := &dtos.Filter{
+		TimeFilter: dtos.TimestampFilter{
+			Max: normalTimestamp,
+			Min: normalTimestamp.Add(time.Minute * 10),
+		},
+	}
+	encodedFilter, err := json.Marshal(filter)
+	assert.Nil(t, err)
+
+	result, err := smartContract.GetAllAssets(mockedTransaction, "0", "10", string(encodedFilter))
+	assert.Equal(t, "", result)
+	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), "minimum interval should not be after the maximum")
+}
+
+func Test_GivenValidFilter_whenGetAllAssets_thenQueryValid(t *testing.T) {
+	controller := gomock.NewController(t)
+	mockedTransaction := mocks.NewMockTransactionContextInterface(controller)
+	mockedChaincodeStub := mocks.NewMockChaincodeStubInterface(controller)
+	mockedIterator := mocks.NewMockStateQueryIteratorInterface(controller)
+
+	hashs := make([]string, 0)
+	hashs = append(hashs, normalHash)
+
+	ids := make([]string, 0)
+	ids = append(ids, normalId)
+
+	typeForms := make([]string, 0)
+	typeForms = append(typeForms, normalTypeForm)
+
+	insertionTypes := make([]string, 0)
+	insertionTypes = append(insertionTypes, normalInsertionType)
+
+	filter := &dtos.Filter{
+		Hashs:          hashs,
+		Ids:            ids,
+		TypeForms:      typeForms,
+		InsertionTypes: insertionTypes,
+		TimeFilter: dtos.TimestampFilter{
+			Min: normalTimestamp,
+			Max: normalTimestamp.Add(time.Minute * 20),
+		},
+	}
+	encodedFilter, err := json.Marshal(filter)
+	assert.Nil(t, err)
+
+	minimumEncoded, _ := json.Marshal(filter.TimeFilter.Min)
+	maximumEncoded, _ := json.Marshal(filter.TimeFilter.Max)
+
+	expectedQuery := `{"selector":{"hash":{"$in":["` + utils.RemoveStringSpaces(normalHash) + `"]}` + `,"type_form":{"$in":["` + utils.RemoveStringSpaces(normalTypeForm) + `"]}` + `,"insertion_type":{"$in":["` + utils.RemoveStringSpaces(normalInsertionType) + `"]}` + `,"id":{"$in":["` + utils.RemoveStringSpaces(normalId) + `"]}` + `,"timestamp":{"$gte":` + string(minimumEncoded) + `,` + `"$lte":` + string(maximumEncoded) + `}}}`
 
 	mockedTransaction.EXPECT().GetStub().Return(mockedChaincodeStub).Times(1)
 

@@ -87,12 +87,54 @@ func createQuery(filter string) (string, error) {
 		mainQuery += queryToAdd
 	}
 
+	isValid, err := isTimeFilterValid(&filterDecoded.TimeFilter)
+	if err != nil {
+		return "", err
+	}
+
+	if isValid {
+		minimumEncoded, err := json.Marshal(filterDecoded.TimeFilter.Min)
+		if err != nil {
+			return "", err
+		}
+		maximumEncoded, err := json.Marshal(filterDecoded.TimeFilter.Max)
+		if err != nil {
+			return "", err
+		}
+		queryToAdd := `"timestamp":{"$gte":` + string(minimumEncoded) + `,` + `"$lte":` + string(maximumEncoded) + `},`
+		mainQuery += queryToAdd
+	}
+
 	if len(mainQuery) != initQueryLen {
 		mainQuery = strings.TrimSuffix(mainQuery, ",")
 	}
 
 	mainQuery += `}}`
 	return mainQuery, nil
+}
+
+func isTimeFilterValid(filter *dtos.TimestampFilter) (bool, error) {
+	if filter.Min.IsZero() && filter.Max.IsZero() {
+		return false, nil
+	}
+
+	if filter.Min.IsZero() {
+		return false, fmt.Errorf("mininum interval is invalid, while maximum is valid")
+	}
+
+	if filter.Max.IsZero() {
+		return false, fmt.Errorf("maximum interval is invalid,while minimum is valid")
+	}
+
+	if filter.Min.After(filter.Max) {
+		return false, fmt.Errorf("minimum interval should not be after the maximum")
+	}
+
+	if filter.Min.Equal(filter.Max) {
+		return false, fmt.Errorf("intervals should not be equal")
+	}
+
+	return true, nil
 }
 
 func encodeArray(arr []string) ([]byte, error) {

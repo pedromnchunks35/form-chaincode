@@ -26,7 +26,9 @@ github.com/hyperledger/fabric-chaincode-go/shim HistoryQueryIteratorInterface
 
 # Generate image
 - We create a docker file
-- We use docker buildx
+```
+docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t pedrosilvamnchunks/form-chaincode:latest --push .
+```
 
 # Timestamp format
 - Timestamp format will be the one from  `ISO 8601` which is the same as RFC3339
